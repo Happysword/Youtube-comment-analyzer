@@ -4,7 +4,7 @@ export default {
       "https://youtube.googleapis.com/youtube/v3/commentThreads?" +
         new URLSearchParams({
           maxResults: "100",
-          part: "snippet,replies",
+          part: "snippet",
           videoId: videoId,
           key: "AIzaSyDJcLStft03LfAqFz1IZJr7NT2xvuDjVH8",
           order: "relevance",

@@ -17,14 +17,14 @@
                   /http(?:s?):\/\/(?:www\.)?youtu(?:be\.com\/watch\?v=|\.be\/)([\w\-\_]*)(&(amp;)?‌​[\w\?‌​=]*)?/g
                 ) || 'Not a valid Youtube URL',
             ]"
-            hint="Example URL : https://www.youtube.com/watch?v=NuyzuNBFWxQ"
+            hint="Example URL : https://www.youtube.com/watch?v=0PRu0PD1sQs"
             persistent-hint
           ></v-text-field>
         </v-form>
       </v-col>
 
       <!-- Loading till we get request -->
-      <v-col v-if="loading === 1 || loading === 2" cols="12">
+      <v-col v-if="loading === 1" cols="12">
         <v-container class="expand">
           <v-progress-circular
             :size="200"
@@ -32,20 +32,20 @@
             indeterminate
             :width="10"
           >
-            <!-- {{ progressValue }} -->
           </v-progress-circular>
         </v-container>
       </v-col>
 
       <!-- Word Cloud -->
-      <v-col v-if="loading === 2 || loading === 3" cols="12" class="mt-6">
+      <v-col v-if="loading === 2" cols="12" class="mt-6">
+        <div id="progress"></div>
         <vue-word-cloud
           @update:progress="showPercentage"
           style="height: 50vh; width: 70vw; margin: auto"
           :words="commentsDataFrequencies"
           :color="() => colors[Math.floor(Math.random() * colors.length)]"
           font-family="Righteous"
-          :font-size-ratio="5"
+          :font-size-ratio="20"
         >
           <template slot-scope="{ text, weight }">
             <v-tooltip top>
@@ -78,7 +78,7 @@ export default {
     [VueWordCloud.name]: VueWordCloud,
   },
   data: () => ({
-    url: "https://www.youtube.com/watch?v=xgZGqD6DAAk",
+    url: "",
     loading: 0, // States 0 => Initial state nothing is showing, 1 => waiting for request, 2 => word cloud is processing, 3=> word cloud show
     commentsDataFrequencies: [],
     colors: [
@@ -97,7 +97,6 @@ export default {
     ],
     showSnackbar: false,
     errorMessage: "",
-    progressValue: 0,
   }),
   methods: {
     async newSearch() {
@@ -108,8 +107,12 @@ export default {
         /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = this.url.match(regExp);
       const videoID = match[2];
+
+      // Set Loading
       this.loading = 1;
-      this.progressValue = 0;
+      if (document.getElementById("progress")) {
+        document.getElementById("progress").innerText = "";
+      }
       this.getAllComments(videoID);
     },
     async getAllComments(videoID) {
@@ -224,9 +227,14 @@ export default {
     },
     showPercentage(e) {
       if (e) {
-        this.progressValue = e.completedWords + " of " + e.totalWords;
+        const progressValue = e.completedWords + " of " + e.totalWords;
+        if (document.getElementById("progress")) {
+          document.getElementById("progress").innerText = progressValue;
+        }
         if (e.completedWords === e.totalWords) {
-          this.loading = 3;
+          if (document.getElementById("progress")) {
+            document.getElementById("progress").innerText = "";
+          }
         }
       }
     },
@@ -250,5 +258,11 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+#progress {
+  text-align: center;
+  font-size: 24px;
+  color: royalblue;
+  font-family: "Righteous", cursive !important;
 }
 </style>
