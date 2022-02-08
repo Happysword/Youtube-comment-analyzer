@@ -2,7 +2,7 @@
   <v-container>
     <v-row justify="center" class="pa-2 mt-5">
       <v-col cols="12" id="title"> Youtube Comments Word Analyzer </v-col>
-      <v-col md="8" sm="12">
+      <v-col md="8" sm="12" xs="12">
         <v-form ref="form" lazy-validation @submit.prevent="newSearch">
           <v-text-field
             outlined
@@ -23,9 +23,9 @@
         </v-form>
       </v-col>
 
-      <v-col md="8" sm="12" style="z-index: 10000">
+      <v-col md="8" sm="12" cols="12" style="z-index: 10000">
         <v-row>
-          <v-col md="4" sm="12">
+          <v-col md="4" sm="12" xs="12">
             <v-text-field
               type="number"
               outlined
@@ -35,7 +35,7 @@
               @keypress="changeMaxNumberOfWords($event)"
             ></v-text-field>
           </v-col>
-          <v-col md="4" sm="12">
+          <v-col md="4" sm="12" cols="12">
             <v-switch
               class="pl-10"
               v-model="tableViewORGraphView"
@@ -64,6 +64,17 @@
             >
             </v-text-field>
           </v-col>
+          <v-col cols="12">
+            <v-slider
+              v-model="fontSizeRatio"
+              min="0"
+              max="50"
+              thumb-label="always"
+              hint="The Ratio between the smallest and the largest Phrase in the Word Cloud"
+              persistent-hint
+              label="Font Size Ratio"
+            ></v-slider>
+          </v-col>
         </v-row>
       </v-col>
 
@@ -90,7 +101,7 @@
             :words="commentsDataFrequencies.slice(0, maxNumberOfWords)"
             :color="() => colors[Math.floor(Math.random() * colors.length)]"
             font-family="Righteous"
-            :font-size-ratio="20"
+            :font-size-ratio="fontSizeRatio"
           >
             <template slot-scope="{ text, weight }">
               <v-tooltip top>
@@ -145,10 +156,11 @@ export default {
     url: "https://www.youtube.com/watch?v=0PRu0PD1sQs",
     loading: 0, // States 0 => Initial state nothing is showing, 1 => waiting for request, 2 => word cloud is processing, 3=> word cloud show
     commentsDataFrequencies: [],
-    maxNumberOfWords: 500,
+    maxNumberOfWords: 100,
     wordsPerPhrase: 1,
     tableViewORGraphView: false,
     concatenatedComments: null,
+    fontSizeRatio: 20,
     colors: [
       "DeepPink",
       "Indigo",
