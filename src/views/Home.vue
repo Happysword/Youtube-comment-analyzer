@@ -64,7 +64,7 @@
             >
             </v-text-field>
           </v-col>
-          <v-col cols="12">
+          <v-col md="8" cols="12">
             <v-slider
               v-model="fontSizeRatio"
               min="0"
@@ -74,6 +74,14 @@
               persistent-hint
               label="Font Size Ratio"
             ></v-slider>
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-switch
+              v-model="uniqueComments"
+              inset
+              label="Unique Comments"
+              @change="changeCommentsUniqueness"
+            ></v-switch>
           </v-col>
         </v-row>
       </v-col>
@@ -158,8 +166,10 @@ export default {
     commentsDataFrequencies: [],
     maxNumberOfWords: 100,
     wordsPerPhrase: 1,
+    uniqueComments: false,
     tableViewORGraphView: false,
     concatenatedComments: null,
+    commentsArray: null,
     fontSizeRatio: 20,
     colors: [
       "DeepPink",
@@ -239,9 +249,16 @@ export default {
       if (retrievedComments == null) {
         this.commentsDataFrequencies = [];
         this.loading = 0;
+        this.commentsArray = null;
       } else {
+        // Set the commentsArray
+        this.commentsArray = retrievedComments;
+
         // Concatenate all comments into a single string
-        this.concatenatedComments = this.concatenateComments(retrievedComments);
+        this.concatenatedComments = this.concatenateComments(
+          retrievedComments,
+          this.uniqueComments
+        );
 
         // Calculte the word frequinces
         // Add the data to the word cloud
@@ -254,21 +271,25 @@ export default {
         this.loading = 2;
       }
     },
-    concatenateComments(comments) {
+    concatenateComments(comments, unique) {
       let result = "";
-      for (let index = 0; index < comments.length; index++) {
-        // Add the main comment
-        result +=
-          " " + comments[index].snippet.topLevelComment.snippet.textOriginal;
 
-        // Add the replies comments
-        // eslint-disable-next-line no-prototype-builtins
-        if (comments[index].hasOwnProperty("replies")) {
-          const replies = comments[index].replies.comments;
-          for (let reply = 0; reply < replies.length; reply++) {
-            result += " " + replies[0].snippet.textOriginal;
-          }
-        }
+      // Create array of strings
+      let commentsArray = [];
+      for (let index = 0; index < comments.length; index++) {
+        commentsArray.push(
+          comments[index].snippet.topLevelComment.snippet.textOriginal
+        );
+      }
+      // Filter to only unique comments
+      if (unique) {
+        commentsArray = [...new Set(commentsArray)];
+      }
+
+      // Append comments to string
+      for (let index = 0; index < commentsArray.length; index++) {
+        // Add the main comment
+        result += " " + commentsArray[index];
       }
       return result;
     },
@@ -310,16 +331,6 @@ export default {
         }
       }
 
-      // words.map((word) => {
-      //   if (word.length >= 1) {
-      //     if (frequinces[word]) {
-      //       frequinces[word]++;
-      //     } else {
-      //       frequinces[word] = 1;
-      //     }
-      //   }
-      // });
-
       // Turn data to arrays and sort them
       let result = [];
       for (const [key, value] of Object.entries(frequinces)) {
@@ -357,6 +368,23 @@ export default {
         e.preventDefault();
         return;
       }
+    },
+    changeCommentsUniqueness(value) {
+      if (!this.commentsArray) {
+        return;
+      }
+      // Concatenate all comments into a single string
+      this.concatenatedComments = this.concatenateComments(
+        this.commentsArray,
+        value
+      );
+
+      // Calculte the word frequinces
+      // Add the data to the word cloud
+      this.commentsDataFrequencies = this.calculateWordFrequencies(
+        this.concatenatedComments,
+        this.wordsPerPhrase
+      );
     },
   },
 };
