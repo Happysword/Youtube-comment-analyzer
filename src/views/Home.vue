@@ -2,7 +2,7 @@
   <v-container>
     <v-row justify="center" class="pa-2 mt-5">
       <v-col cols="12" id="title"> Youtube Comments Word Analyzer </v-col>
-      <v-col md="8" xs="12">
+      <v-col md="8" sm="12">
         <v-form ref="form" lazy-validation @submit.prevent="newSearch">
           <v-text-field
             outlined
@@ -23,6 +23,50 @@
         </v-form>
       </v-col>
 
+      <v-col md="8" sm="12" style="z-index: 10000">
+        <v-row>
+          <v-col md="4" sm="12">
+            <v-text-field
+              type="number"
+              outlined
+              label="Max Number of Words"
+              v-model="maxNumberOfWords"
+              min="1"
+              @keypress="changeMaxNumberOfWords($event)"
+            ></v-text-field>
+          </v-col>
+          <v-col md="4" sm="12">
+            <v-switch
+              class="pl-10"
+              v-model="tableViewORGraphView"
+              inset
+              :label="`${tableViewORGraphView ? 'Table' : 'Word Cloud'}`"
+            ></v-switch>
+          </v-col>
+          <v-col md="4" sm="12">
+            <v-text-field
+              type="number"
+              outlined
+              label="Words Per Phrase"
+              hint="Values allowed are between 1 and 20 inclusive"
+              v-model="wordsPerPhrase"
+              min="1"
+              max="20"
+              @keypress="changeWordsPerPhrase($event)"
+              @input="
+                (e) => {
+                  commentsDataFrequencies = calculateWordFrequencies(
+                    concatenatedComments,
+                    e
+                  );
+                }
+              "
+            >
+            </v-text-field>
+          </v-col>
+        </v-row>
+      </v-col>
+
       <!-- Loading till we get request -->
       <v-col v-if="loading === 1" cols="12">
         <v-container class="expand">
@@ -37,27 +81,47 @@
       </v-col>
 
       <!-- Word Cloud -->
-      <v-col v-if="loading === 2" cols="12" class="mt-6">
-        <div id="progress"></div>
-        <vue-word-cloud
-          @update:progress="showPercentage"
-          style="height: 50vh; width: 70vw; margin: auto"
-          :words="commentsDataFrequencies"
-          :color="() => colors[Math.floor(Math.random() * colors.length)]"
-          font-family="Righteous"
-          :font-size-ratio="20"
-        >
-          <template slot-scope="{ text, weight }">
-            <v-tooltip top>
-              <template v-slot:activator="{ on, attrs }">
-                <div v-bind="attrs" v-on="on" style="cursor: default">
-                  {{ text }}
-                </div>
-              </template>
-              <span>{{ text }}: {{ weight }}</span>
-            </v-tooltip>
-          </template>
-        </vue-word-cloud>
+      <v-col v-if="loading === 2" cols="12" class="mt-8 mb-6">
+        <template v-if="!tableViewORGraphView">
+          <div id="progress"></div>
+          <vue-word-cloud
+            @update:progress="showPercentage"
+            style="height: 50vh; width: 70vw; margin: auto"
+            :words="commentsDataFrequencies.slice(0, maxNumberOfWords)"
+            :color="() => colors[Math.floor(Math.random() * colors.length)]"
+            font-family="Righteous"
+            :font-size-ratio="20"
+          >
+            <template slot-scope="{ text, weight }">
+              <v-tooltip top>
+                <template v-slot:activator="{ on, attrs }">
+                  <div v-bind="attrs" v-on="on" style="cursor: default">
+                    {{ text }}
+                  </div>
+                </template>
+                <span>{{ text }}: {{ weight }}</span>
+              </v-tooltip>
+            </template>
+          </vue-word-cloud>
+        </template>
+        <template v-else>
+          <v-simple-table height="50vh" dense fixed-header>
+            <template v-slot:default>
+              <thead>
+                <tr>
+                  <th class="text-left">Phrase</th>
+                  <th class="text-left">Frequency</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in commentsDataFrequencies" :key="item.name">
+                  <td>{{ item[0] }}</td>
+                  <td>{{ item[1] }}</td>
+                </tr>
+              </tbody>
+            </template>
+          </v-simple-table>
+        </template>
       </v-col>
     </v-row>
 
@@ -78,9 +142,13 @@ export default {
     [VueWordCloud.name]: VueWordCloud,
   },
   data: () => ({
-    url: "",
+    url: "https://www.youtube.com/watch?v=0PRu0PD1sQs",
     loading: 0, // States 0 => Initial state nothing is showing, 1 => waiting for request, 2 => word cloud is processing, 3=> word cloud show
     commentsDataFrequencies: [],
+    maxNumberOfWords: 500,
+    wordsPerPhrase: 1,
+    tableViewORGraphView: false,
+    concatenatedComments: null,
     colors: [
       "DeepPink",
       "Indigo",
@@ -161,17 +229,14 @@ export default {
         this.loading = 0;
       } else {
         // Concatenate all comments into a single string
-        let concatenatedComments = this.concatenateComments(retrievedComments);
+        this.concatenatedComments = this.concatenateComments(retrievedComments);
 
         // Calculte the word frequinces
-        let wordFrequencies =
-          this.calculateWordFrequencies(concatenatedComments);
-
-        // Change the data to the format the word cloud needs
-        let wordFreqArrays = this.dictToArrays(wordFrequencies);
-
         // Add the data to the word cloud
-        this.commentsDataFrequencies = wordFreqArrays;
+        this.commentsDataFrequencies = this.calculateWordFrequencies(
+          this.concatenatedComments,
+          this.wordsPerPhrase
+        );
 
         // Show the word cloud
         this.loading = 2;
@@ -195,7 +260,12 @@ export default {
       }
       return result;
     },
-    calculateWordFrequencies(searchString) {
+    calculateWordFrequencies(searchString, numberOfWords) {
+      // Check if there is data
+      if (!searchString) return;
+      numberOfWords = Number(numberOfWords);
+
+      // Clean the comments data
       searchString = searchString.toLowerCase();
       searchString = searchString.replace(
         /[\.,-\/#!$%\^&\*;:{}=\-_`~()"]/g,
@@ -203,26 +273,49 @@ export default {
       );
       searchString = searchString.replace(/\n/g, " ");
 
+      // Initialize the words and frequencies
       let frequinces = {};
-      let words = searchString.split(" ");
+      let words = searchString.split(" ").filter((i) => i);
 
-      words.map((word) => {
-        if (word.length >= 1) {
-          if (frequinces[word]) {
-            frequinces[word]++;
+      // Calculate the frequencies of words
+      for (let index = 0; index < words.length - numberOfWords; index++) {
+        // Concat the number of words
+        let concatString = "";
+        for (
+          let nextWord = index;
+          nextWord < index + numberOfWords;
+          nextWord++
+        ) {
+          concatString += " " + words[nextWord];
+        }
+        // Add word to dictionary
+        if (concatString.length >= 1) {
+          if (frequinces[concatString]) {
+            frequinces[concatString]++;
           } else {
-            frequinces[word] = 1;
+            frequinces[concatString] = 1;
           }
         }
-      });
+      }
 
-      return frequinces;
-    },
-    dictToArrays(dict) {
+      // words.map((word) => {
+      //   if (word.length >= 1) {
+      //     if (frequinces[word]) {
+      //       frequinces[word]++;
+      //     } else {
+      //       frequinces[word] = 1;
+      //     }
+      //   }
+      // });
+
+      // Turn data to arrays and sort them
       let result = [];
-      for (const [key, value] of Object.entries(dict)) {
+      for (const [key, value] of Object.entries(frequinces)) {
         result.push([key, value]);
       }
+      result.sort(function (first, second) {
+        return second[1] - first[1];
+      });
       return result;
     },
     showPercentage(e) {
@@ -236,6 +329,21 @@ export default {
             document.getElementById("progress").innerText = "";
           }
         }
+      }
+    },
+    changeMaxNumberOfWords(e) {
+      // Non negative values only
+      if (this.maxNumberOfWords > 0) return true;
+      else {
+        this.maxNumberOfWords = Number(e.key);
+        e.preventDefault();
+      }
+    },
+    changeWordsPerPhrase(e) {
+      const newValue = Number(this.wordsPerPhrase + e.key);
+      if (newValue < 0 || newValue > 20 || e.key == "-") {
+        e.preventDefault();
+        return;
       }
     },
   },
