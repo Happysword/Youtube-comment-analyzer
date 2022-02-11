@@ -6,7 +6,7 @@ export default {
           maxResults: "100",
           part: "snippet",
           videoId: videoId,
-          key: "AIzaSyDJcLStft03LfAqFz1IZJr7NT2xvuDjVH8",
+          key: "", // Key should be your API key from youtube
           order: "relevance",
           ...(pageToken && { pageToken }),
         })
