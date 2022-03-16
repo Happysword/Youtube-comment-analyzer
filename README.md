@@ -1,24 +1,9 @@
-# youtube-comment-analysis
+# Youtube Comment Analyzer
 
-## Project setup
+A tool to analyze youtube video comments and show them in a word cloud
+
+## To run the Project
 ```
 npm install
-```
-
-### Compiles and hot-reloads for development
-```
 npm run serve
 ```
-
-### Compiles and minifies for production
-```
-npm run build
-```
-
-### Lints and fixes files
-```
-npm run lint
-```
-
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
